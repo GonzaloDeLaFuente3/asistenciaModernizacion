@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entorno virtual
+venv/
+env/
+ENV/
+*.env
+*.venv
+
+# Si usas virtualenvwrapper en Windows
+Envs/
+
+# Base de datos
+db.sqlite3
+*.sqlite3
+
+# Archivos de migraciones compilados
+*/migrations/*.pyc
+
+# Archivos estáticos y media (si se generan)
+staticfiles/
+media/
+
+# Logs
+*.log
+
+# IDEs
+.vscode/
+.idea/
+
+# Archivos del sistema
+Thumbs.db
+Desktop.ini
+
+# Archivos temporales
+*.swp
+*.bak
+*.tmp
+
+# Archivos de entorno Django
+.env
+.env.*
