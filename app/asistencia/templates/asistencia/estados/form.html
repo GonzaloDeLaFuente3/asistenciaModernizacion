@@ -1,0 +1,127 @@
+{% extends 'asistencia/base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-8 col-lg-6">
+
+    <div class="d-flex align-items-center gap-2 mb-4">
+      <a href="{% url 'estados_lista' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h2 class="fw-bold mb-0">
+        <i class="bi bi-tags-fill me-2 text-success"></i>{{ titulo }}
+      </h2>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          <div class="row g-3 mb-3">
+            <div class="col-4">
+              <label for="{{ form.codigo.id_for_label }}" class="form-label fw-semibold">
+                Código <span class="text-danger">*</span>
+              </label>
+              {{ form.codigo }}
+              {% if form.codigo.errors %}
+                <div class="invalid-feedback d-block">{{ form.codigo.errors|join:", " }}</div>
+              {% endif %}
+              <div class="form-text">Máx. 5 caracteres</div>
+            </div>
+            <div class="col-4">
+              <label for="{{ form.orden.id_for_label }}" class="form-label fw-semibold">Orden</label>
+              {{ form.orden }}
+              {% if form.orden.errors %}
+                <div class="invalid-feedback d-block">{{ form.orden.errors|join:", " }}</div>
+              {% endif %}
+            </div>
+            <div class="col-4 d-flex flex-column">
+              <label class="form-label fw-semibold">Activo</label>
+              <div class="form-check mt-2">
+                {{ form.activo }}
+                <label class="form-check-label" for="{{ form.activo.id_for_label }}">Activo</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-semibold">
+              Descripción <span class="text-danger">*</span>
+            </label>
+            {{ form.descripcion }}
+            {% if form.descripcion.errors %}
+              <div class="invalid-feedback d-block">{{ form.descripcion.errors|join:", " }}</div>
+            {% endif %}
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-6">
+              <label for="{{ form.color_fondo.id_for_label }}" class="form-label fw-semibold">
+                Color de fondo
+              </label>
+              <div class="d-flex align-items-center gap-2">
+                {{ form.color_fondo }}
+                <span class="text-muted small" id="preview-fondo-texto"></span>
+              </div>
+            </div>
+            <div class="col-6">
+              <label for="{{ form.color_texto.id_for_label }}" class="form-label fw-semibold">
+                Color de texto
+              </label>
+              <div class="d-flex align-items-center gap-2">
+                {{ form.color_texto }}
+                <span class="text-muted small" id="preview-texto-texto"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista previa -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Vista previa</label>
+            <div class="p-3 rounded border" id="preview-box" style="font-weight: 600; font-size: 1rem; display: inline-block; min-width: 150px; text-align: center;">
+              Vista previa
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-success px-4">
+              <i class="bi bi-check-lg me-1"></i>Guardar
+            </button>
+            <a href="{% url 'estados_lista' %}" class="btn btn-outline-secondary px-4">
+              Cancelar
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const colorFondo = document.getElementById('{{ form.color_fondo.id_for_label }}');
+  const colorTexto = document.getElementById('{{ form.color_texto.id_for_label }}');
+  const codigoInput = document.getElementById('{{ form.codigo.id_for_label }}');
+  const previewBox = document.getElementById('preview-box');
+
+  function updatePreview() {
+    const fondo = colorFondo.value;
+    const texto = colorTexto.value;
+    const codigo = codigoInput.value || 'XX';
+    previewBox.style.backgroundColor = fondo;
+    previewBox.style.color = texto;
+    previewBox.textContent = codigo;
+  }
+
+  colorFondo.addEventListener('input', updatePreview);
+  colorTexto.addEventListener('input', updatePreview);
+  codigoInput.addEventListener('input', updatePreview);
+
+  updatePreview();
+</script>
+{% endblock %}

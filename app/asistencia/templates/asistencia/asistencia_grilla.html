@@ -1,0 +1,322 @@
+{% extends 'asistencia/base.html' %}
+
+{% block title %}Asistencia {{ mes_nombre }} {{ anio }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* Tabla de asistencia */
+  .asistencia-table th,
+  .asistencia-table td {
+    vertical-align: middle;
+    padding: 0;
+  }
+  .asistencia-table thead th {
+    padding: 0.4rem 0.3rem;
+    white-space: nowrap;
+    font-size: 0.78rem;
+    background-color: #f8f9fa;
+  }
+  .asistencia-table tbody td.empleado-col {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    border-right: 2px solid #dee2e6;
+    min-width: 140px;
+    max-width: 180px;
+  }
+  /* Encabezado día de hoy */
+  th.col-hoy {
+    background-color: #ffc107 !important;
+    color: #000;
+  }
+  td.col-hoy {
+    background-color: #fff9e6 !important;
+  }
+  /* Ajuste de celdas select */
+  td.celda-asistencia {
+    min-width: 62px;
+    max-width: 80px;
+  }
+  .asistencia-select {
+    width: 100%;
+    min-width: 58px;
+    border: none;
+    border-radius: 0;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.1rem;
+    text-align: center;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+  }
+  .asistencia-select:focus {
+    outline: 2px solid #0d6efd;
+    outline-offset: -2px;
+    z-index: 2;
+    position: relative;
+  }
+  /* Nombre del empleado sticky */
+  .sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background-color: #fff;
+  }
+  thead .sticky-col {
+    background-color: #f8f9fa;
+    z-index: 2;
+  }
+  tbody tr:nth-child(even) .sticky-col {
+    background-color: #f9fafb;
+  }
+  tbody tr:hover .sticky-col {
+    background-color: #eef2ff;
+  }
+  tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+
+  /* Barra de guardado */
+  .save-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+    background: #fff;
+    border-top: 2px solid #dee2e6;
+    padding: 0.6rem 1rem;
+    box-shadow: 0 -3px 12px rgba(0,0,0,.1);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Encabezado: navegación del mes ─────────────────────── -->
+<div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+  <a href="{% url 'asistencia_grilla' mes_ant_anio mes_ant_mes %}"
+     class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-chevron-left me-1"></i>{{ mes_ant_mes }}/{{ mes_ant_anio }}
+  </a>
+
+  <div class="text-center">
+    <h3 class="fw-bold mb-0">{{ mes_nombre }} {{ anio }}</h3>
+    <a href="{% url 'asistencia' %}" class="btn btn-sm btn-link text-decoration-none p-0">
+      <i class="bi bi-calendar-today me-1"></i>Hoy
+    </a>
+  </div>
+
+  <a href="{% url 'asistencia_grilla' mes_sig_anio mes_sig_mes %}"
+     class="btn btn-outline-secondary btn-sm">
+    {{ mes_sig_mes }}/{{ mes_sig_anio }}<i class="bi bi-chevron-right ms-1"></i>
+  </a>
+</div>
+
+<!-- ── Filtro de semanas ───────────────────────────────────── -->
+{% if semanas_info %}
+<div class="mb-3 d-flex flex-wrap gap-1 align-items-center">
+  <span class="text-muted small me-1"><i class="bi bi-funnel me-1"></i>Semana:</span>
+  <a href="{% url 'asistencia_grilla' anio mes %}"
+     class="btn btn-sm {% if semana_idx is None %}btn-primary{% else %}btn-outline-primary{% endif %}">
+    Todo el mes
+  </a>
+  {% for sem in semanas_info %}
+  <a href="{% url 'asistencia_grilla' anio mes %}?semana={{ sem.idx }}"
+     class="btn btn-sm {% if sem.activa %}btn-primary{% else %}btn-outline-primary{% endif %}">
+    {{ sem.label }}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ── Leyenda de estados ──────────────────────────────────── -->
+{% if estados %}
+<div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+  <span class="text-danger small"><i class="bi bi-info-circle me-1 text-danger"></i>Leyenda:</span>
+  {% for estado in estados %}
+  <span class="px-2 py-1 rounded small fw-semibold"
+        style="background-color:{{ estado.color_fondo }};color:{{ estado.color_texto }};border:1px solid rgba(0,0,0,.12);">
+    {{ estado.codigo }} – {{ estado.descripcion }}
+  </span>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ── Grilla ──────────────────────────────────────────────── -->
+{% if columnas %}
+<div class="table-responsive border rounded shadow-sm">
+  <table class="table table-bordered table-sm asistencia-table mb-0">
+    <thead>
+      <tr>
+        <th class="sticky-col text-center" style="min-width:140px;">Empleado</th>
+        {% for col in columnas %}
+        <th class="text-center {% if col.es_hoy %}col-hoy{% endif %}"
+            style="min-width:62px;">
+          <div class="text-uppercase" style="font-size:.68rem;color:#6c757d;letter-spacing:.5px;">
+            {{ col.dia_nombre }}
+          </div>
+          <div class="fw-bold" style="font-size:.9rem;">{{ col.dia_num }}</div>
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for fila in grid %}
+      <tr>
+        <td class="sticky-col empleado-col fw-semibold">{{ fila.empleado }}</td>
+        {% for celda in fila.dias %}
+        <td class="celda-asistencia p-0 {% if celda.es_hoy %}col-hoy{% endif %}">
+          <select class="asistencia-select"
+                  data-empleado-id="{{ fila.empleado.id }}"
+                  data-fecha="{{ celda.fecha_str }}">
+            <option value="">—</option>
+            {% for estado in estados %}
+            <option value="{{ estado.id }}"
+                    data-color-fondo="{{ estado.color_fondo }}"
+                    data-color-texto="{{ estado.color_texto }}"
+                    {% if celda.estado and celda.estado.id == estado.id %}selected{% endif %}>
+              {{ estado.codigo }}
+            </option>
+            {% endfor %}
+          </select>
+        </td>
+        {% endfor %}
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="{{ columnas|length|add:1 }}" class="text-center text-muted py-4">
+          <i class="bi bi-people fs-3 d-block mb-2 opacity-25"></i>
+          No hay empleados activos.
+          <a href="{% url 'empleados_lista' %}">Ir a empleados</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+  <i class="bi bi-calendar-x me-2"></i>No hay días hábiles en este período.
+</div>
+{% endif %}
+
+<!-- ── Barra de guardado fija ──────────────────────────────── -->
+{% if grid and columnas %}
+<div class="save-bar mt-0">
+  <div class="d-flex justify-content-between align-items-center">
+    <span class="text-muted small" id="save-status"></span>
+    <button id="btn-guardar" class="btn btn-primary px-4">
+      <i class="bi bi-floppy-fill me-2"></i>Guardar asistencia
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// ── Actualizar color de celda según el select ──────────────
+function updateSelectColor(select) {
+  const option = select.options[select.selectedIndex];
+  const td = select.closest('td');
+  if (option && option.value) {
+    const fondo = option.dataset.colorFondo;
+    const texto = option.dataset.colorTexto;
+    select.style.backgroundColor = fondo;
+    select.style.color = texto;
+    // Mantener color de hoy más visible
+    if (!td.classList.contains('col-hoy')) {
+      td.style.backgroundColor = fondo;
+    }
+  } else {
+    select.style.backgroundColor = '';
+    select.style.color = '';
+    if (!td.classList.contains('col-hoy')) {
+      td.style.backgroundColor = '';
+    }
+  }
+}
+
+// ── Aplicar colores al cargar la página ───────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.asistencia-select').forEach(function (sel) {
+    updateSelectColor(sel);
+    sel.addEventListener('change', function () {
+      updateSelectColor(this);
+    });
+  });
+
+  // Scroll suave al día de hoy (columna)
+  const hoyHeader = document.querySelector('th.col-hoy');
+  if (hoyHeader) {
+    hoyHeader.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
+
+  // Botón guardar
+  const btn = document.getElementById('btn-guardar');
+  if (!btn) return;
+
+  btn.addEventListener('click', async function () {
+    const textoOriginal = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Guardando...';
+    btn.disabled = true;
+
+    // Recolectar todos los selects
+    const registros = [];
+    document.querySelectorAll('.asistencia-select').forEach(function (sel) {
+      registros.push({
+        empleado_id: parseInt(sel.dataset.empleadoId),
+        fecha: sel.dataset.fecha,
+        estado_id: sel.value ? parseInt(sel.value) : null
+      });
+    });
+
+    try {
+      const resp = await fetch('{% url "asistencia_guardar" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ registros: registros })
+      });
+
+      const data = await resp.json();
+
+      if (data.success) {
+        btn.innerHTML = '<i class="bi bi-check-circle-fill me-2"></i>Guardado';
+        btn.classList.replace('btn-primary', 'btn-success');
+        setTimeout(function () {
+          btn.innerHTML = textoOriginal;
+          btn.classList.replace('btn-success', 'btn-primary');
+          btn.disabled = false;
+        }, 2200);
+      } else {
+        throw new Error(data.error || 'Error desconocido');
+      }
+    } catch (e) {
+      alert('Error al guardar: ' + e.message);
+      btn.innerHTML = textoOriginal;
+      btn.disabled = false;
+    }
+  });
+});
+
+// ── Obtener cookie CSRF ────────────────────────────────────
+function getCookie(name) {
+  let val = null;
+  if (document.cookie) {
+    document.cookie.split(';').forEach(function (c) {
+      c = c.trim();
+      if (c.startsWith(name + '=')) {
+        val = decodeURIComponent(c.slice(name.length + 1));
+      }
+    });
+  }
+  return val;
+}
+</script>
+{% endblock %}
