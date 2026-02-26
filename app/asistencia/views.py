@@ -3,6 +3,7 @@ import json
 from datetime import date, timedelta
 
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -24,6 +25,7 @@ DIAS_CORTOS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 # Dashboard
 # ─────────────────────────────────────────
 
+@login_required
 def dashboard(request):
     empleados_activos = Empleado.objects.filter(activo=True).count()
     estados_activos = EstadoAsistencia.objects.filter(activo=True).count()
@@ -42,11 +44,13 @@ def dashboard(request):
 # Empleados
 # ─────────────────────────────────────────
 
+@login_required
 def empleados_lista(request):
     empleados = Empleado.objects.all()
     return render(request, 'asistencia/empleados/lista.html', {'empleados': empleados})
 
 
+@login_required
 def empleados_crear(request):
     if request.method == 'POST':
         form = EmpleadoForm(request.POST)
@@ -62,6 +66,7 @@ def empleados_crear(request):
     })
 
 
+@login_required
 def empleados_editar(request, pk):
     empleado = get_object_or_404(Empleado, pk=pk)
     if request.method == 'POST':
@@ -79,6 +84,7 @@ def empleados_editar(request, pk):
     })
 
 
+@login_required
 @require_POST
 def empleados_eliminar(request, pk):
     empleado = get_object_or_404(Empleado, pk=pk)
@@ -88,6 +94,7 @@ def empleados_eliminar(request, pk):
     return redirect('empleados_lista')
 
 
+@login_required
 @require_POST
 def empleados_activar(request, pk):
     empleado = get_object_or_404(Empleado, pk=pk)
@@ -101,11 +108,13 @@ def empleados_activar(request, pk):
 # Estados de Asistencia
 # ─────────────────────────────────────────
 
+@login_required
 def estados_lista(request):
     estados = EstadoAsistencia.objects.all()
     return render(request, 'asistencia/estados/lista.html', {'estados': estados})
 
 
+@login_required
 def estados_crear(request):
     if request.method == 'POST':
         form = EstadoAsistenciaForm(request.POST)
@@ -121,6 +130,7 @@ def estados_crear(request):
     })
 
 
+@login_required
 def estados_editar(request, pk):
     estado = get_object_or_404(EstadoAsistencia, pk=pk)
     if request.method == 'POST':
@@ -138,6 +148,7 @@ def estados_editar(request, pk):
     })
 
 
+@login_required
 @require_POST
 def estados_eliminar(request, pk):
     estado = get_object_or_404(EstadoAsistencia, pk=pk)
@@ -157,11 +168,13 @@ def estados_eliminar(request, pk):
 # Asistencia – Grilla mensual
 # ─────────────────────────────────────────
 
+@login_required
 def asistencia_redirigir(request):
     hoy = date.today()
     return redirect('asistencia_grilla', anio=hoy.year, mes=hoy.month)
 
 
+@login_required
 def asistencia_grilla(request, anio, mes):
     hoy = date.today()
 
@@ -299,6 +312,7 @@ def asistencia_grilla(request, anio, mes):
 # Asistencia – Guardado AJAX
 # ─────────────────────────────────────────
 
+@login_required
 @require_POST
 def asistencia_guardar(request):
     try:
