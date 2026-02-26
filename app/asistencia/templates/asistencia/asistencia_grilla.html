@@ -204,8 +204,28 @@
 <!-- ── Barra de guardado fija ──────────────────────────────── -->
 {% if grid and columnas %}
 <div class="save-bar mt-0">
-  <div class="d-flex justify-content-between align-items-center">
-    <span class="text-muted small" id="save-status"></span>
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+
+    <!-- Acción rápida: marcar todos hoy -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      <span class="text-primary small fw-semibold">
+        Marcar para todos hoy el estado:
+      </span>
+      <select id="select-estado-masivo" class="form-select form-select-sm" style="width: auto;">
+        {% for estado in estados %}
+        <option value="{{ estado.id }}"
+                data-color-fondo="{{ estado.color_fondo }}"
+                data-color-texto="{{ estado.color_texto }}">
+          {{ estado.codigo }} – {{ estado.descripcion }}
+        </option>
+        {% endfor %}
+      </select>
+      <button id="btn-marcar-hoy" class="btn btn-sm btn-outline-success">
+        <i class="bi bi-check-all me-1"></i>Aplicar a todos
+      </button>
+    </div>
+
+    <!-- Guardar -->
     <button id="btn-guardar" class="btn btn-primary px-4">
       <i class="bi bi-floppy-fill me-2"></i>Guardar asistencia
     </button>
@@ -253,6 +273,36 @@ document.addEventListener('DOMContentLoaded', function () {
   const hoyHeader = document.querySelector('th.col-hoy');
   if (hoyHeader) {
     hoyHeader.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }
+
+  // ── Marcar todos los empleados con un estado para hoy ─────
+  const btnMarcarHoy = document.getElementById('btn-marcar-hoy');
+  if (btnMarcarHoy) {
+    btnMarcarHoy.addEventListener('click', function () {
+      const fechaHoy = '{{ hoy|date:"Y-m-d" }}';
+      const selectMasivo = document.getElementById('select-estado-masivo');
+      const estadoId = selectMasivo.value;
+      const selectsHoy = document.querySelectorAll(`.asistencia-select[data-fecha="${fechaHoy}"]`);
+
+      if (selectsHoy.length === 0) {
+        alert('El día de hoy no está visible en la grilla actual.\nNavegá al mes actual o quitá el filtro de semana.');
+        return;
+      }
+
+      selectsHoy.forEach(function (sel) {
+        sel.value = estadoId;
+        updateSelectColor(sel);
+      });
+
+      // Feedback visual breve
+      const original = btnMarcarHoy.innerHTML;
+      btnMarcarHoy.innerHTML = `<i class="bi bi-check-circle me-1"></i>${selectsHoy.length} marcados`;
+      btnMarcarHoy.classList.replace('btn-outline-secondary', 'btn-success');
+      setTimeout(function () {
+        btnMarcarHoy.innerHTML = original;
+        btnMarcarHoy.classList.replace('btn-success', 'btn-outline-secondary');
+      }, 1800);
+    });
   }
 
   // Botón guardar
