@@ -1,0 +1,399 @@
+{% extends 'asistencia/base.html' %}
+{% load static l10n %}
+
+{% block title %}Estadísticas – {{ titulo_periodo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .card-stat {
+    border: none;
+    border-radius: .75rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .card-stat .valor {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .filter-card {
+    background: #fff;
+    border-radius: .75rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .table-stats th { font-size: .78rem; white-space: nowrap; background: #f8f9fa; }
+  .table-stats td { font-size: .82rem; vertical-align: middle; }
+  .badge-estado {
+    display: inline-block;
+    font-size: .75rem;
+    font-weight: 700;
+    padding: .15rem .45rem;
+    border-radius: .3rem;
+    border: 1px solid rgba(0,0,0,.1);
+    min-width: 28px;
+    text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Encabezado ─────────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <h2 class="fw-bold mb-0">
+      <i class="bi bi-bar-chart-fill me-2 text-primary"></i>Estadísticas
+    </h2>
+    <br/>
+    <p class="text-muted mb-0">
+      Período: <strong>{{ titulo_periodo }}</strong>
+      &nbsp;·&nbsp;
+      {{ fecha_inicio|date:"d/m/Y" }} al {{ fecha_fin_real|date:"d/m/Y" }}
+    </p>
+  </div>
+</div>
+
+<!-- ── Formulario de filtros ──────────────────────────────── -->
+<div class="filter-card bg-primary-subtle">
+  <form method="get" id="form-filtros">
+    <div class="row g-2 align-items-end">
+
+      <div class="col-6 col-sm-auto">
+        <label class="form-label small fw-semibold mb-1">Período</label>
+        <select name="periodo" id="sel-periodo" class="form-select form-select-sm">
+          <option value="mensual"    {% if periodo == 'mensual'    %}selected{% endif %}>Mensual</option>
+          <option value="trimestral" {% if periodo == 'trimestral' %}selected{% endif %}>Trimestral</option>
+          <option value="semestral"  {% if periodo == 'semestral'  %}selected{% endif %}>Semestral</option>
+          <option value="anual"      {% if periodo == 'anual'      %}selected{% endif %}>Anual</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-sm-auto" id="div-mes">
+        <label class="form-label small fw-semibold mb-1">Mes</label>
+        <select name="mes" class="form-select form-select-sm">
+          {% for num, nombre in MESES_ES.items %}
+          <option value="{{ num }}" {% if num == mes_param %}selected{% endif %}>{{ nombre }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-6 col-sm-auto" id="div-trimestre" style="display:none">
+        <label class="form-label small fw-semibold mb-1">Trimestre</label>
+        <select name="trimestre" class="form-select form-select-sm">
+          <option value="1" {% if trimestre_param == 1 %}selected{% endif %}>T1 – Ene / Feb / Mar</option>
+          <option value="2" {% if trimestre_param == 2 %}selected{% endif %}>T2 – Abr / May / Jun</option>
+          <option value="3" {% if trimestre_param == 3 %}selected{% endif %}>T3 – Jul / Ago / Sep</option>
+          <option value="4" {% if trimestre_param == 4 %}selected{% endif %}>T4 – Oct / Nov / Dic</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-sm-auto" id="div-semestre" style="display:none">
+        <label class="form-label small fw-semibold mb-1">Semestre</label>
+        <select name="semestre" class="form-select form-select-sm">
+          <option value="1" {% if semestre_param == 1 %}selected{% endif %}>S1 – Ene a Jun</option>
+          <option value="2" {% if semestre_param == 2 %}selected{% endif %}>S2 – Jul a Dic</option>
+        </select>
+      </div>
+
+      <div class="col-6 col-sm-auto">
+        <label class="form-label small fw-semibold mb-1">Año</label>
+        <select name="anio" class="form-select form-select-sm">
+          {% for a in anios_disponibles %}
+          <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 col-sm-auto">
+        <button type="submit" class="btn btn-primary btn-sm px-3">
+          <i class="bi bi-search me-1"></i>Ver estadísticas
+        </button>
+      </div>
+
+    </div>
+  </form>
+</div>
+
+<!-- ── Tarjetas resumen ────────────────────────────────────── -->
+<div class="row g-3 mb-4 ">
+  <div class="col-6 col-lg-3">
+    <div class="card card-stat h-100 bg-primary-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-primary bg-opacity-10 p-2 flex-shrink-0">
+            <i class="bi bi-calendar-range text-primary fs-4"></i>
+          </div>
+          <div>
+            <div class="valor text-primary">{{ total_dias_habiles }}</div>
+            <div class="small">Días hábiles</div>
+          </div>
+        </div>
+        <div class=" mt-2" style="font-size:.74rem;">
+          {{ fecha_inicio|date:"d/m" }} al {{ fecha_fin_real|date:"d/m/Y" }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card card-stat h-100 bg-primary-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-success bg-opacity-10 p-2 flex-shrink-0">
+            <i class="bi bi-patch-check text-success fs-4"></i>
+          </div>
+          <div>
+            <div class="valor text-success">{{ cobertura_global }}%</div>
+            <div class=" small">Cobertura global</div>
+          </div>
+        </div>
+        <div class=" mt-2" style="font-size:.74rem;">
+          {{ total_registros }} de {{ total_posibles }} registros posibles
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card card-stat h-100 bg-primary-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-warning bg-opacity-10 p-2 flex-shrink-0">
+            <i class="bi bi-people text-warning fs-4"></i>
+          </div>
+          <div>
+            <div class="valor text-warning">{{ total_empleados }}</div>
+            <div class=" small">Empleados activos</div>
+          </div>
+        </div>
+        <div class=" mt-2" style="font-size:.74rem;">Incluidos en el análisis</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card card-stat h-100 bg-primary-subtle">
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-3">
+          <div class="rounded-3 bg-danger bg-opacity-10 p-2 flex-shrink-0">
+            <i class="bi bi-calendar-x text-danger fs-4"></i>
+          </div>
+          <div>
+            <div class="valor text-danger">{{ sin_registro_total }}</div>
+            <div class=" small">Sin registrar</div>
+          </div>
+        </div>
+        <div class=" mt-2" style="font-size:.74rem;">días-persona sin estado cargado</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tabla por empleado ─────────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent fw-semibold">
+    <i class="bi bi-table me-2 text-primary"></i>Detalle por empleado
+    <span class="text-muted small fw-normal ms-2">ordenado por % cobertura</span>
+  </div>
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover table-bordered align-middle mb-0 table-stats">
+        <thead class="table-light bg-secondary">
+          <tr>
+            <th class="ps-3 text-center bg-secondary-subtle" style="min-width:150px;">Empleado</th>
+            {% for estado in estados %}
+            <th class="text-center bg-secondary-subtle" style="min-width:52px;">
+              <span class="badge-estado"
+                    style="background:{{ estado.color_fondo }};color:{{ estado.color_texto }};">
+                {{ estado.codigo }}
+              </span>
+            </th>
+            {% endfor %}
+            <th class="text-center bg-secondary-subtle">Sin reg.</th>
+            <th class="text-center bg-secondary-subtle">Cobertura</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in stats_por_empleado %}
+          <tr>
+            <td class="ps-3 fw-semibold">{{ row.empleado }}</td>
+            {% for item in row.conteo_lista %}
+            <td class="text-center">
+              {% if item.cantidad > 0 %}
+              <span class="badge-estado"
+                    style="background:{{ item.estado.color_fondo }};color:{{ item.estado.color_texto }};">
+                {{ item.cantidad }}
+              </span>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            {% endfor %}
+            <td class="text-center">
+              {% if row.sin_registro > 0 %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                {{ row.sin_registro }}
+              </span>
+              {% else %}
+              <span class="text-success small"><i class="bi bi-check-circle"></i></span>
+              {% endif %}
+            </td>
+            <td class="text-center fw-semibold">
+              <span class="small fw-semibold
+                {% if row.cobertura >= 95 %}text-success
+                {% elif row.cobertura >= 80 %}text-warning
+                {% else %}text-danger{% endif %}">
+                {{ row.cobertura }}%
+              </span>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="20" class="text-center text-muted py-4">
+              No hay empleados activos o no hay registros en este período.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Distribución de estados + Tendencia ───────────────── -->
+<div class="row g-4">
+
+  <!-- Distribución -->
+  <div class="col-12 {% if tendencia_mensual %}col-lg-5{% endif %}">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-pie-chart me-2 text-success"></i>Distribución de estados
+        <span class="text-muted small fw-normal ms-1">({{ total_registros }} registros totales)</span>
+      </div>
+      <div class="card-body">
+        {% if dist_estados %}
+          {% for item in dist_estados %}
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <span class="badge-estado"
+                    style="background:{{ item.estado__color_fondo }};color:{{ item.estado__color_texto }};">
+                {{ item.estado__codigo }}
+              </span>
+              <span class="small text-muted ms-2 flex-grow-1 ps-2">{{ item.estado__descripcion }}</span>
+              <span class="small fw-semibold">{{ item.total }} <span class="text-muted">({{ item.pct }}%)</span></span>
+            </div>
+            <div class="progress" style="height:14px; border-radius:6px;">
+              <div class="progress-bar" role="progressbar"
+                   style="width:{{ item.pct|unlocalize }}%; background-color:{{ item.estado__color_fondo }}; color:{{ item.estado__color_texto }}; font-size:.7rem; font-weight:700;">
+                {% if item.pct >= 1 %}{{ item.pct }}% {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted text-center py-3">
+            <i class="bi bi-inbox fs-3 d-block mb-2 opacity-25"></i>
+            No hay registros en este período.
+          </p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Tendencia mensual -->
+  {% if tendencia_mensual %}
+  <div class="col-12 col-lg-7">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-header bg-transparent fw-semibold">
+        <i class="bi bi-graph-up me-2 text-info"></i>Tendencia mensual
+        <span class="text-muted small fw-normal ms-1">% cobertura por mes</span>
+      </div>
+      <div class="card-body">
+        <canvas id="chart-tendencia" style="max-height:260px;"></canvas>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- Mostrar/ocultar selectores según tipo de período -->
+<script>
+  (function () {
+    const selPeriodo = document.getElementById('sel-periodo');
+    const divMes = document.getElementById('div-mes');
+    const divTrimestre = document.getElementById('div-trimestre');
+    const divSemestre = document.getElementById('div-semestre');
+
+    function actualizarFiltros(periodo) {
+      divMes.style.display       = periodo === 'mensual'    ? '' : 'none';
+      divTrimestre.style.display = periodo === 'trimestral' ? '' : 'none';
+      divSemestre.style.display  = periodo === 'semestral'  ? '' : 'none';
+    }
+
+    // Estado inicial (según lo que devolvió el servidor)
+    actualizarFiltros('{{ periodo }}');
+
+    selPeriodo.addEventListener('change', function () {
+      actualizarFiltros(this.value);
+    });
+  })();
+</script>
+
+{% if tendencia_mensual %}
+<!-- Chart.js solo cuando hay datos de tendencia -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{{ tendencia_mensual|json_script:"tendencia-json" }}
+<script>
+  (function () {
+    const raw = JSON.parse(document.getElementById('tendencia-json').textContent);
+    const labels  = raw.map(function (d) { return d.etiqueta; });
+    const valores = raw.map(function (d) { return d.pct; });
+
+    new Chart(document.getElementById('chart-tendencia'), {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: '% Cobertura',
+          data: valores,
+          backgroundColor: valores.map(function (v) {
+            return v >= 90 ? 'rgba(25,135,84,.75)'
+                 : v >= 70 ? 'rgba(255,193,7,.75)'
+                           : 'rgba(220,53,69,.75)';
+          }),
+          borderRadius: 5,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) { return ' ' + ctx.raw + '% cobertura'; }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { callback: function (v) { return v + '%'; } },
+            grid: { color: 'rgba(0,0,0,.05)' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  })();
+</script>
+{% endif %}
+{% endblock %}

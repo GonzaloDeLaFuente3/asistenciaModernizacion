@@ -19,6 +19,9 @@ urlpatterns = [
     path('estados/<int:pk>/editar/', views.estados_editar, name='estados_editar'),
     path('estados/<int:pk>/eliminar/', views.estados_eliminar, name='estados_eliminar'),
 
+    # Estadísticas
+    path('estadisticas/', views.estadisticas, name='estadisticas'),
+
     # Asistencia
     path('asistencia/', views.asistencia_redirigir, name='asistencia'),
     path('asistencia/guardar/', views.asistencia_guardar, name='asistencia_guardar'),
