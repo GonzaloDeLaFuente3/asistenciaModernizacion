@@ -261,62 +261,59 @@
   </div>
 </div>
 
-<!-- ── Distribución de estados + Tendencia ───────────────── -->
-<div class="row g-4">
-
-  <!-- Distribución -->
-  <div class="col-12 {% if tendencia_mensual %}col-lg-5{% endif %}">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-pie-chart me-2 text-success"></i>Distribución de estados
-        <span class="text-muted small fw-normal ms-1">({{ total_registros }} registros totales)</span>
-      </div>
-      <div class="card-body">
-        {% if dist_estados %}
-          {% for item in dist_estados %}
-          <div class="mb-3">
-            <div class="d-flex justify-content-between align-items-center mb-1">
-              <span class="badge-estado"
-                    style="background:{{ item.estado__color_fondo }};color:{{ item.estado__color_texto }};">
-                {{ item.estado__codigo }}
-              </span>
-              <span class="small text-muted ms-2 flex-grow-1 ps-2">{{ item.estado__descripcion }}</span>
-              <span class="small fw-semibold">{{ item.total }} <span class="text-muted">({{ item.pct }}%)</span></span>
-            </div>
-            <div class="progress" style="height:14px; border-radius:6px;">
-              <div class="progress-bar" role="progressbar"
-                   style="width:{{ item.pct|unlocalize }}%; background-color:{{ item.estado__color_fondo }}; color:{{ item.estado__color_texto }}; font-size:.7rem; font-weight:700;">
-                {% if item.pct >= 1 %}{{ item.pct }}% {% endif %}
-              </div>
-            </div>
+<!-- ── Distribución de estados ────────────────────────────── -->
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent fw-semibold">
+    <i class="bi bi-pie-chart me-2 text-success"></i>Distribución de estados
+    <span class="text-muted small fw-normal ms-1">({{ total_registros }} registros totales)</span>
+  </div>
+  <div class="card-body">
+    {% if dist_estados %}
+      {% for item in dist_estados %}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="badge-estado"
+                style="background:{{ item.estado__color_fondo }};color:{{ item.estado__color_texto }};">
+            {{ item.estado__codigo }}
+          </span>
+          <span class="small text-muted ms-2 flex-grow-1 ps-2">{{ item.estado__descripcion }}</span>
+          <span class="small fw-semibold">{{ item.total }} <span class="text-muted">({{ item.pct }}%)</span></span>
+        </div>
+        <div class="progress" style="height:14px; border-radius:6px;">
+          <div class="progress-bar" role="progressbar"
+               style="width:{{ item.pct|unlocalize }}%; background-color:{{ item.estado__color_fondo }}; color:{{ item.estado__color_texto }}; font-size:.7rem; font-weight:700;">
+            {% if item.pct >= 1 %}{{ item.pct }}%{% endif %}
           </div>
-          {% endfor %}
-        {% else %}
-          <p class="text-muted text-center py-3">
-            <i class="bi bi-inbox fs-3 d-block mb-2 opacity-25"></i>
-            No hay registros en este período.
-          </p>
-        {% endif %}
+        </div>
       </div>
-    </div>
+      {% endfor %}
+    {% else %}
+      <p class="text-muted text-center py-3">
+        <i class="bi bi-inbox fs-3 d-block mb-2 opacity-25"></i>
+        No hay registros en este período.
+      </p>
+    {% endif %}
   </div>
-
-  <!-- Tendencia mensual -->
-  {% if tendencia_mensual %}
-  <div class="col-12 col-lg-7">
-    <div class="card border-0 shadow-sm h-100">
-      <div class="card-header bg-transparent fw-semibold">
-        <i class="bi bi-graph-up me-2 text-info"></i>Tendencia mensual
-        <span class="text-muted small fw-normal ms-1">% cobertura por mes</span>
-      </div>
-      <div class="card-body">
-        <canvas id="chart-tendencia" style="max-height:260px;"></canvas>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
 </div>
+
+<!-- ── Tendencia mensual por estado ───────────────────────── -->
+{% if tendencia_data %}
+<div class="card border-0 shadow-sm mb-4">
+  <div class="card-header bg-transparent d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="fw-semibold">
+      <i class="bi bi-graph-up me-2 text-info"></i>Tendencia mensual por estado
+    </span>
+    <select id="sel-estado-chart" class="form-select form-select-sm" style="max-width:240px;">
+      {% for e in estados %}
+      <option value="{{ e.codigo }}">{{ e.codigo }} – {{ e.descripcion }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="card-body">
+    <canvas id="chart-tendencia" style="max-height:300px;"></canvas>
+  </div>
+</div>
+{% endif %}
 
 {% endblock %}
 
@@ -345,53 +342,69 @@
   })();
 </script>
 
-{% if tendencia_mensual %}
+{% if tendencia_data %}
 <!-- Chart.js solo cuando hay datos de tendencia -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
-{{ tendencia_mensual|json_script:"tendencia-json" }}
+{{ tendencia_data|json_script:"tendencia-json" }}
 <script>
   (function () {
     const raw = JSON.parse(document.getElementById('tendencia-json').textContent);
-    const labels  = raw.map(function (d) { return d.etiqueta; });
-    const valores = raw.map(function (d) { return d.pct; });
+    const selEstado = document.getElementById('sel-estado-chart');
+    let chart = null;
 
-    new Chart(document.getElementById('chart-tendencia'), {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: '% Cobertura',
-          data: valores,
-          backgroundColor: valores.map(function (v) {
-            return v >= 90 ? 'rgba(25,135,84,.75)'
-                 : v >= 70 ? 'rgba(255,193,7,.75)'
-                           : 'rgba(220,53,69,.75)';
-          }),
-          borderRadius: 5,
-          borderSkipped: false,
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: true,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: function (ctx) { return ' ' + ctx.raw + '% cobertura'; }
+    function buildChart(codigo) {
+      const est = raw.estados.find(function (e) { return e.codigo === codigo; });
+      if (!est) return;
+
+      if (chart) {
+        chart.data.labels = raw.etiquetas;
+        chart.data.datasets[0].label = est.codigo + ' \u2013 ' + est.descripcion;
+        chart.data.datasets[0].data = est.datos;
+        chart.data.datasets[0].backgroundColor = est.color_fondo;
+        chart.update();
+      } else {
+        chart = new Chart(document.getElementById('chart-tendencia'), {
+          type: 'bar',
+          data: {
+            labels: raw.etiquetas,
+            datasets: [{
+              label: est.codigo + ' \u2013 ' + est.descripcion,
+              data: est.datos,
+              backgroundColor: est.color_fondo,
+              borderRadius: 5,
+              borderSkipped: false,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function (ctx) {
+                    return ' ' + ctx.raw + '% en ' + est.descripcion;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                max: 100,
+                ticks: { callback: function (v) { return v + '%'; } },
+                grid: { color: 'rgba(0,0,0,.05)' }
+              },
+              x: { grid: { display: false } }
             }
           }
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 100,
-            ticks: { callback: function (v) { return v + '%'; } },
-            grid: { color: 'rgba(0,0,0,.05)' }
-          },
-          x: { grid: { display: false } }
-        }
+        });
       }
+    }
+
+    buildChart(selEstado.value);
+    selEstado.addEventListener('change', function () {
+      buildChart(this.value);
     });
   })();
 </script>

@@ -478,9 +478,12 @@ def estadisticas(request):
     stats_por_empleado.sort(key=lambda x: x['cobertura'], reverse=True)
     sin_registro_total = sum(s['sin_registro'] for s in stats_por_empleado)
 
-    # ── Tendencia mensual (períodos > 1 mes) ───────────────
-    tendencia_mensual = []
+    # ── Tendencia mensual por estado (períodos > 1 mes) ────
+    tendencia_data = None
     if periodo in ('trimestral', 'semestral', 'anual'):
+        etiquetas = []
+        por_estado_mes = {e.codigo: [] for e in estados}
+
         cur = date(fecha_inicio.year, fecha_inicio.month, 1)
         while cur <= fecha_fin and cur <= hoy:
             dias_h_mes = sum(
@@ -488,18 +491,33 @@ def estadisticas(request):
                 if date(cur.year, cur.month, i).weekday() < 5
                 and date(cur.year, cur.month, i) <= hoy
             )
-            regs_mes = registros_qs.filter(
+            posibles_mes = dias_h_mes * total_empleados
+            etiquetas.append(f"{MESES_ES[cur.month][:3]} {str(cur.year)[2:]}")
+
+            regs_mes_qs = registros_qs.filter(
                 fecha__year=cur.year,
                 fecha__month=cur.month,
-            ).count()
-            posibles_mes = dias_h_mes * total_empleados
-            pct_mes = round(regs_mes / posibles_mes * 100, 1) if posibles_mes > 0 else 0
-            tendencia_mensual.append({
-                'etiqueta': f"{MESES_ES[cur.month][:3]} {str(cur.year)[2:]}",
-                'pct': pct_mes,
-                'registros': regs_mes,
-            })
+            )
+            for estado in estados:
+                count = regs_mes_qs.filter(estado=estado).count()
+                pct = round(count / posibles_mes * 100, 1) if posibles_mes > 0 else 0
+                por_estado_mes[estado.codigo].append(pct)
+
             cur = date(cur.year + (cur.month == 12), (cur.month % 12) + 1, 1)
+
+        tendencia_data = {
+            'etiquetas': etiquetas,
+            'estados': [
+                {
+                    'codigo': e.codigo,
+                    'descripcion': e.descripcion,
+                    'color_fondo': e.color_fondo,
+                    'color_texto': e.color_texto,
+                    'datos': por_estado_mes[e.codigo],
+                }
+                for e in estados
+            ],
+        }
 
     # ── Años disponibles ───────────────────────────────────
     primera_fecha = RegistroAsistencia.objects.aggregate(primera=Min('fecha'))['primera']
@@ -520,7 +538,7 @@ def estadisticas(request):
         'dist_estados': dist_estados,
         'stats_por_empleado': stats_por_empleado,
         'estados': estados,
-        'tendencia_mensual': tendencia_mensual,
+        'tendencia_data': tendencia_data,
         'sin_registro_total': sin_registro_total,
         'anios_disponibles': anios_disponibles,
         'MESES_ES': MESES_ES,
